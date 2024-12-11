@@ -1,6 +1,21 @@
 import SwiftUI
 import WebKit
 
+// ViewModel pour gérer les données reçues de JavaScript
+class ViewModel: ObservableObject {
+    @Published var info: String = "Waiting for data..."
+    @Published var showAlert: Bool = false
+    @Published var alertMessage: String = ""
+    @Published var navigateBack: Bool = false // Contrôler la navigation
+    @Published var navigateToLogin: Bool = false // Contrôler la navigation vers login si nécessaire
+    func updateData(with data: String) {
+        DispatchQueue.main.async {
+            self.info = data
+        }
+    }
+}
+
+// WebView intégrée à SwiftUI
 struct WebView: UIViewRepresentable {
     var url: URL
     @ObservedObject var viewModel: ViewModel
@@ -9,11 +24,30 @@ struct WebView: UIViewRepresentable {
         let webConfiguration = WKWebViewConfiguration()
         webConfiguration.allowsInlineMediaPlayback = true
         
+        // Autorisation pour la caméra
         let userContentController = WKUserContentController()
         userContentController.add(context.coordinator, name: "iosListener")
         webConfiguration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: webConfiguration)
+
+        // Script JavaScript pour gérer la permission de la caméra
+        let cameraPermissionScript = """
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                console.log('Camera access granted');
+                window.webkit.messageHandlers.iosListener.postMessage('Camera access granted');
+            })
+            .catch(function(error) {
+                console.log('Camera access denied');
+                window.webkit.messageHandlers.iosListener.postMessage('Camera access denied');
+            });
+        }
+        """
+        let script = WKUserScript(source: cameraPermissionScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        webConfiguration.userContentController.addUserScript(script)
+        
         webView.load(URLRequest(url: url))
         return webView
     }
@@ -23,7 +57,7 @@ struct WebView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator(viewModel: viewModel)
     }
-
+    
     class Coordinator: NSObject, WKScriptMessageHandler {
         var viewModel: ViewModel
 
@@ -33,93 +67,131 @@ struct WebView: UIViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if let data = message.body as? String {
-                DispatchQueue.main.async {
-                    self.viewModel.updateData(with: data)
+                // Envoyer les données à la vue
+                self.viewModel.updateData(with: data)
+                
+                // Vérification si l'exercice est mal effectué
+                if data.contains("user is not in the detection frame") || data.contains("incorrect form") {
+                    // Si l'exercice est mal effectué, afficher l'alerte
+                    DispatchQueue.main.async {
+                        self.viewModel.alertMessage = "The exercise is not performed correctly."
+                        self.viewModel.showAlert = true
+                    }
                 }
             }
         }
     }
 }
 
-class ViewModel: ObservableObject {
-    @Published var info: String = "Waiting for data..."
-
-    func updateData(with data: String) {
-        self.info = data
-    }
-}
-func fetchTrackingURL(poseData: [String: Any], completion: @escaping (String?) -> Void) {
-    guard let url = URL(string: "https://d092-196-232-79-254.ngrok-free.app/track/generate-url") else { return }
-   
-    var request = URLRequest(url: url)
-    request.httpMethod = "POST"
-    request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-   
-    do {
-        request.httpBody = try JSONSerialization.data(withJSONObject: poseData, options: [])
-    } catch {
-        print("Failed to encode pose data: \(error)")
-        completion(nil)
-        return
-    }
-   
-    URLSession.shared.dataTask(with: request) { data, response, error in
-        if let error = error {
-            print("Error fetching URL: \(error)")
-            completion(nil)
-            return
-        }
-       
-        guard let data = data else {
-            print("No data received")
-            completion(nil)
-            return
-        }
-       
-        do {
-            if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-               let trackingUrl = json["trackingUrl"] as? String {
-                completion(trackingUrl)
-            } else {
-                completion(nil)
-            }
-        } catch {
-            print("Error parsing response: \(error)")
-            completion(nil)
-        }
-    }.resume()
-}
-
-struct PoseTracker: View {
-    @StateObject private var viewModel = ViewModel()
-    @State private var trackingUrl: String? = nil
+// Vue principale de l'application
+struct PoseTrackerView: View {
+    @StateObject var viewModel = ViewModel()
+    @State private var selectedExercise = "squat"
+    @State private var selectedDifficulty = "easy"
+    @State private var showWebView = false
+    @State private var token = "4de8d13e-362c-47ba-b16b-5fc519e71d27"
+    
+    @State private var isNavigatingToChallengeView = false // Contrôler la navigation
+    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
 
     var body: some View {
-        VStack {
-            Text(viewModel.info)
-                .padding()
-           
-            if let url = trackingUrl, let validURL = URL(string: url) {
-                WebView(url: validURL, viewModel: viewModel)
+        NavigationView {
+            VStack {
+                if showWebView {
+                    WebView(
+                        url: constructURL(
+                            token: token,
+                            exercise: selectedExercise,
+                            difficulty: selectedDifficulty
+                        ),
+                        viewModel: viewModel
+                    )
                     .edgesIgnoringSafeArea(.all)
-            } else {
-                Text("Loading tracking data...")
-                    .onAppear {
-                        let poseData: [String: Any] = [
-                            "exercise": "squat",
-                            "difficulty": "easy",
-                            "skeleton": true,
-                            "width": 350,
-                            "height": 350
-                        ]
-                        fetchTrackingURL(poseData: poseData) { url in
-                            DispatchQueue.main.async {
-                                self.trackingUrl = url
-                            }
+
+                    Text(viewModel.info)
+                        .padding()
+                        .foregroundColor(.blue)
+                        .multilineTextAlignment(.center)
+                } else {
+                    VStack {
+                        Text("Choose Your Exercise and Difficulty")
+                                                  .font(.title)
+                                                  .fontWeight(.bold)
+                                                  .foregroundColor(.blue) // Change color to blue
+                                                  .padding(.top, 40)
+                                                  .multilineTextAlignment(.center)
+
+                        Picker("Exercise", selection: $selectedExercise) {
+                            Text("Squat").tag("squat")
+                            Text("Push-up").tag("pushup")
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                                                 .padding()
+                                                 .background(Color.gray.opacity(0.1))
+                                                 .cornerRadius(12)
+                                                 .shadow(radius: 5)
+
+
+                        Picker("Difficulty", selection: $selectedDifficulty) {
+                            Text("Easy").tag("easy")
+                            Text("Medium").tag("medium")
+                            Text("Hard").tag("hard")
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                                                    .padding()
+                                                    .background(Color.gray.opacity(0.1))
+                                                    .cornerRadius(12)
+                                                    .shadow(radius: 5)
+
+                        Button(action: {
+                            showWebView = true
+                        }) {
+                            Text("Start the Challenge!")
+                                                                .foregroundColor(.white)
+                                                                .font(.headline)
+                                                                .padding()
+                                                                .background(Color.green)
+                                                                .cornerRadius(12)
+                                                                .shadow(radius: 10)
+                                                                .scaleEffect(1.1)
+                                                                .animation(.spring(), value: showWebView)
                         }
                     }
+                }
+                
+                // NavigationLink conditionnel pour forcer la navigation vers ChallengeView
+                NavigationLink(
+                    destination: ChallengeView(), // Remplacez par votre vue ChallengeView
+                    isActive: $isNavigatingToChallengeView
+                ) {
+                    EmptyView() // Aucun contenu visuel ici
+                }
+            }
+            .alert(isPresented: $viewModel.showAlert) {
+                Alert(
+                    title: Text("Warning !"),
+                    message: Text(viewModel.alertMessage),
+                    dismissButton: .default(Text("OK")) {
+                        // Lorsque l'alerte est fermée, naviguer vers ChallengeView
+                        self.isNavigatingToChallengeView = true
+                    }
+                )
             }
         }
+        .navigationBarBackButtonHidden(true) // Empêche le bouton de retour par défaut
+    }
+
+    private func constructURL(token: String, exercise: String, difficulty: String) -> URL {
+        let baseUrl = "https://app.posetracker.com/pose_tracker/tracking"
+        var components = URLComponents(string: baseUrl)!
+        components.queryItems = [
+            URLQueryItem(name: "token", value: token),
+            URLQueryItem(name: "exercise", value: exercise),
+            URLQueryItem(name: "difficulty", value: difficulty),
+            URLQueryItem(name: "width", value: "350"),
+            URLQueryItem(name: "height", value: "350"),
+            URLQueryItem(name: "progression", value: "true")
+        ]
+        return components.url!
     }
 }
-
