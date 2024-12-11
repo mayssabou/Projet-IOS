@@ -54,10 +54,13 @@ struct ChallengeView: View {
                         .shadow(radius: 5)
                 }
                 .padding(.top, 30)
-                .navigationDestination(isPresented: $isChallengeStarted) {
-                    // Naviguer vers la vue du challenge
-                    ChallengeGameplayView(playerOne: playerOneName, playerTwo: playerTwoName)
-                }
+                .padding(.top, 30)
+                               .navigationDestination(isPresented: $isChallengeStarted) {
+                                   // Naviguer vers la vue PosetrackerView
+                                   PoseTrackerView(
+                                                        
+                                                      )                               }
+
 
                 Spacer()
             }

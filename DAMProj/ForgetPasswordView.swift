@@ -85,7 +85,7 @@ struct ForgetPasswordView: View {
             errorMessage = "Passwords do not match."
             return
         }
-        let url = URL(string:  "https://520d-197-21-87-58.ngrok-free.app/auth/forgot-password")
+        let url = URL(string:  "https://8076-197-3-6-252.ngrok-free.app/auth/forgot-password")
         let body = [
             "email": email,
             "password": password
@@ -184,7 +184,7 @@ struct ConfirmMail: View {
             return
         }
         
-        let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/auth/generate-email")!  // Remplacer par l'URL correcte
+        let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/auth/generate-email")!  // Remplacer par l'URL correcte
         let body = [
             "email": email,
         ]
@@ -235,3 +235,4 @@ struct ForgetPasswordView_Previews: PreviewProvider {
 }
 //Maissa1230?0
 ///Mmaissa@esprit.tn
+//Maissabs1230?

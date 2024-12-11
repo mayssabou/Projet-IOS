@@ -63,7 +63,7 @@ struct OTPView: View {
         }
 
         // Logic for OTP validation
-        let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/auth/verify-email")
+        let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/auth/verify-email")
         
         let body: [String: Any] = [
             "email": email,

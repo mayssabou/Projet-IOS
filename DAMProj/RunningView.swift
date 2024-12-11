@@ -161,7 +161,7 @@ struct RunningView: View {
             return
         }
 
-        guard let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/\(encodedEmail)") else {
+        guard let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
             completion(nil)
             return
         }
@@ -192,7 +192,7 @@ struct RunningView: View {
 
     private func sendExerciseDataToBackend(userId: String) {
         // URL de l'API backend
-        guard let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/exercices") else {
+        guard let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/exercices") else {
             print("URL invalide.")
             return
         }

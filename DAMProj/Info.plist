@@ -2,9 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>L&apos;application a besoin d&apos;accéder à la caméra pour suivre les exercices .</string>
 	<key>UIAppFonts</key>
-	<array>
-		<string>Outfit-VariableFont_wght.ttf</string>
-	</array>
+	<array/>
 </dict>
 </plist>

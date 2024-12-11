@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct DAMProjApp: App {
+    
     var body: some Scene {
         WindowGroup {
+        
             LoginView()
+                
         }
     }
+
 }

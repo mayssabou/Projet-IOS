@@ -159,7 +159,8 @@ struct LoginView: View {
             }
             // Programmatic navigation to ProfileView after login
             .background(
-                NavigationLink(destination: HomeView(email: email), isActive: $navigateToHome) {
+                NavigationLink(destination: HomeView(email: email), isActive: $navigateToHome){
+                             
                     EmptyView()
                 }
             )
@@ -191,7 +192,7 @@ struct LoginView: View {
         }
 
         // Send login request
-        let url = URL(string:  "https://520d-197-21-87-58.ngrok-free.app/auth/login")
+        let url = URL(string:  "https://8076-197-3-6-252.ngrok-free.app/auth/login")
         let body = [
             "email": email,
             "password": password

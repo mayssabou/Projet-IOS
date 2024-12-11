@@ -132,7 +132,7 @@ struct SignUpView: View {
         }
 
         // Si les erreurs ont été corrigées, on envoie les données
-        let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/auth/signup")
+        let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/auth/signup")
         let body = [
             "prenom": firstName,
             "nom": lastName,

@@ -90,7 +90,7 @@ struct ProfileView: View {
     
     func fetchUserDetails() {
         guard let encodedEmail = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/\(encodedEmail)") else {
+              let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
             print("URL incorrecte")
             return
         }
@@ -138,7 +138,7 @@ struct ProfileView: View {
                         return
                     }
 
-                    guard let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/\(userId)") else {
+                    guard let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/\(userId)") else {
                         print("URL incorrecte")
                         return
                     }
@@ -179,7 +179,7 @@ struct ProfileView: View {
             return
         }
 
-        guard let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/\(encodedEmail)") else {
+        guard let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
             completion(nil)
             return
         }
@@ -357,7 +357,7 @@ struct editProfileView: View {
         ]
 
         guard let encodedEmail = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/email/\(encodedEmail)") else {
+              let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/email/\(encodedEmail)") else {
             print("Invalid URL")
             return
         }
@@ -408,7 +408,7 @@ struct editProfileView: View {
                     return
                 }
 
-                guard let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/\(userId)") else {
+                guard let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/\(userId)") else {
                     print("URL incorrecte")
                     return
                 }
@@ -447,7 +447,7 @@ struct editProfileView: View {
             return
         }
 
-        guard let url = URL(string: "https://520d-197-21-87-58.ngrok-free.app/user/\(encodedEmail)") else {
+        guard let url = URL(string: "https://8076-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
             completion(nil)
             return
         }
