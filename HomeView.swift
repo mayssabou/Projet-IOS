@@ -36,15 +36,7 @@ struct HomeView: View {
                         }
                     }
                     .navigationTitle("GoVibe")
-                    .navigationBarItems(trailing:
-                        NavigationLink(destination: ProfileView(email: email)) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 40, height: 40)
-                                .clipShape(Circle())
-                        }
-                    )
+              
                 }
                 .padding()
             }
@@ -54,11 +46,16 @@ struct HomeView: View {
             }
             
             // Challenge tab
-            ChallengeView()
-                .tabItem {
-                    Image(systemName: "flame.fill")
-                    Text("Challenge")
-                }
+            ChallengeView(email: email)  // Pass email directly here
+                         .tabItem {
+                             Image(systemName: "flame.fill")
+                             Text("Challenge")
+                         }
+            ProfileView(email: email)  // Pass email directly to the ProfileView
+                           .tabItem {
+                               Image(systemName: "person.crop.circle.fill")
+                               Text("Profile")
+                           }
         }
     }
     

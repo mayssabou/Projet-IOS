@@ -1,18 +1,55 @@
 import SwiftUI
 import WebKit
+import AVFoundation
 
 // ViewModel pour gérer les données reçues de JavaScript
 class ViewModel: ObservableObject {
     @Published var info: String = "Waiting for data..."
-    @Published var showAlert: Bool = false
-    @Published var alertMessage: String = ""
-    @Published var navigateBack: Bool = false // Contrôler la navigation
-    @Published var navigateToLogin: Bool = false // Contrôler la navigation vers login si nécessaire
+       @Published var currentCount: Int = 0 // Compteur de répétitions
+       @Published var message: String = ""
+       @Published var timerValue: Int = 30 // Compteur de secondes
+       @Published var showCongratulations: Bool = false // Afficher le message de félicitations
+       @Published var timerActive: Bool = false // Si le timer est actif
+       @Published var reloadTrigger: Bool = false // Déclencher le rechargement
+       @Published var showAlert: Bool = false // Pour afficher l'alerte
+       @Published var alertMessage: String = "" // Message de l'alerte
+       let maxCount = 10 // Objectif de répétitions
+       
     func updateData(with data: String) {
         DispatchQueue.main.async {
             self.info = data
         }
     }
+    func restartExercise() {
+        self.currentCount = 0
+        self.timerValue = 30
+        self.showCongratulations = false
+        self.timerActive = false
+        self.showAlert = false
+    }
+
+    func startTimer() {
+           self.timerActive = true
+           self.timerValue = 30
+           Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+               if self.timerValue > 0 && self.currentCount < self.maxCount {
+                   self.timerValue -= 1
+               } else {
+                   timer.invalidate()
+                   self.timerActive = false
+                   
+                   // Vérifier si l'objectif a été atteint
+                   if self.currentCount >= self.maxCount {
+                       self.showCongratulations = true
+                       self.alertMessage = "🎉 Congratulations! You have reached the goal of  \(self.maxCount) repetitions in \(30 - self.timerValue) seconds. Great job! 🎉"
+                   } else {
+                       self.alertMessage = "Time's up! Try again to reach \(self.maxCount) repetitions."
+                   }
+                   self.showAlert = true
+               }
+           }
+       }
+
 }
 
 // WebView intégrée à SwiftUI
@@ -70,12 +107,12 @@ struct WebView: UIViewRepresentable {
                 // Envoyer les données à la vue
                 self.viewModel.updateData(with: data)
                 
-                // Vérification si l'exercice est mal effectué
-                if data.contains("user is not in the detection frame") || data.contains("incorrect form") {
-                    // Si l'exercice est mal effectué, afficher l'alerte
-                    DispatchQueue.main.async {
-                        self.viewModel.alertMessage = "The exercise is not performed correctly."
-                        self.viewModel.showAlert = true
+                // Logique similaire à Android pour gérer les répétitions et autres
+                if data.contains("counter") {
+                    // Exemple de mise à jour du compteur à partir des données JS
+                    self.viewModel.currentCount += 1
+                    if self.viewModel.currentCount == 1 && !self.viewModel.timerActive {
+                        self.viewModel.startTimer()
                     }
                 }
             }
@@ -90,95 +127,114 @@ struct PoseTrackerView: View {
     @State private var selectedDifficulty = "easy"
     @State private var showWebView = false
     @State private var token = "4de8d13e-362c-47ba-b16b-5fc519e71d27"
-    
-    @State private var isNavigatingToChallengeView = false // Contrôler la navigation
-    @Environment(\.presentationMode) var presentationMode: Binding<PresentationMode>
+    var email: String
 
     var body: some View {
         NavigationView {
-            VStack {
-                if showWebView {
-                    WebView(
-                        url: constructURL(
-                            token: token,
-                            exercise: selectedExercise,
-                            difficulty: selectedDifficulty
-                        ),
-                        viewModel: viewModel
-                    )
+            ZStack {
+                Color.white
                     .edgesIgnoringSafeArea(.all)
 
-                    Text(viewModel.info)
+                VStack {
+                    if showWebView {
+                        WebView(
+                            url: constructURL(
+                                token: token,
+                                exercise: selectedExercise,
+                                difficulty: selectedDifficulty
+                            ),
+                            viewModel: viewModel
+                        )
+                        .frame(width: 350, height: 350)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .shadow(color: Color.blue.opacity(0.5), radius: 10)
                         .padding()
-                        .foregroundColor(.blue)
-                        .multilineTextAlignment(.center)
-                } else {
-                    VStack {
-                        Text("Choose Your Exercise and Difficulty")
-                                                  .font(.title)
-                                                  .fontWeight(.bold)
-                                                  .foregroundColor(.blue) // Change color to blue
-                                                  .padding(.top, 40)
-                                                  .multilineTextAlignment(.center)
 
-                        Picker("Exercise", selection: $selectedExercise) {
-                            Text("Squat").tag("squat")
-                            Text("Push-up").tag("pushup")
+                        VStack(spacing: 20) {
+                            Text("Repetitions : \(viewModel.currentCount) / \(viewModel.maxCount)")
+                                .font(.headline)
+                                .padding()
+                                .background(Color.green.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(color: Color.green.opacity(0.5), radius: 5)
+
+                            Text("Time Remaining : \(viewModel.timerValue) seconds")
+                                .font(.headline)
+                                .padding()
+                                .background(Color.blue.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(color: Color.green.opacity(0.5), radius: 5)
+                            if !viewModel.timerActive {
+                                Button(action: {
+                                    viewModel.restartExercise()
+                                }) {
+                                    Text("Restart")
+                                        .foregroundColor(.white)
+                                        .font(.headline)
+                                        .padding()
+                                        .background(Color.red)
+                                        .cornerRadius(12)
+                                        .shadow(color: Color.red.opacity(0.5), radius: 5)
+                                }
+                            }
+
                         }
-                        .pickerStyle(SegmentedPickerStyle())
-                                                 .padding()
-                                                 .background(Color.gray.opacity(0.1))
-                                                 .cornerRadius(12)
-                                                 .shadow(radius: 5)
+                    } else {
+                        VStack(spacing: 30) {
+                            Text("Select your exercise and difficulty")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(Color.blue)
+                                .multilineTextAlignment(.center)
 
+                            Picker("Exercise", selection: $selectedExercise) {
+                                Text("Squat").tag("squat")
+                                Text("Push-up").tag("pushup")
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .padding()
+                            .background(Color.green.opacity(0.3))
+                            .cornerRadius(12)
 
-                        Picker("Difficulty", selection: $selectedDifficulty) {
-                            Text("Easy").tag("easy")
-                            Text("Medium").tag("medium")
-                            Text("Hard").tag("hard")
+                            Picker("Difficulty", selection: $selectedDifficulty) {
+                                Text("Easy").tag("easy")
+                                Text("Medium").tag("medium")
+                                Text("Hard").tag("hard")
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            .padding()
+                            .background(Color.blue.opacity(0.3))
+                            .cornerRadius(12)
+
+                            Button(action: {
+                                showWebView = true
+                            }) {
+                                Text("Start Challenge")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .cornerRadius(12)
+                                    .shadow(color: Color.blue.opacity(0.5), radius: 5)
+                                    .scaleEffect(1.1)
+                                    .animation(.easeInOut, value: showWebView)
+                            }
                         }
-                        .pickerStyle(SegmentedPickerStyle())
-                                                    .padding()
-                                                    .background(Color.gray.opacity(0.1))
-                                                    .cornerRadius(12)
-                                                    .shadow(radius: 5)
-
-                        Button(action: {
-                            showWebView = true
-                        }) {
-                            Text("Start the Challenge!")
-                                                                .foregroundColor(.white)
-                                                                .font(.headline)
-                                                                .padding()
-                                                                .background(Color.green)
-                                                                .cornerRadius(12)
-                                                                .shadow(radius: 10)
-                                                                .scaleEffect(1.1)
-                                                                .animation(.spring(), value: showWebView)
-                        }
+                        .padding()
                     }
                 }
-                
-                // NavigationLink conditionnel pour forcer la navigation vers ChallengeView
-                NavigationLink(
-                    destination: ChallengeView(), // Remplacez par votre vue ChallengeView
-                    isActive: $isNavigatingToChallengeView
-                ) {
-                    EmptyView() // Aucun contenu visuel ici
-                }
-            }
-            .alert(isPresented: $viewModel.showAlert) {
-                Alert(
-                    title: Text("Warning !"),
-                    message: Text(viewModel.alertMessage),
-                    dismissButton: .default(Text("OK")) {
-                        // Lorsque l'alerte est fermée, naviguer vers ChallengeView
-                        self.isNavigatingToChallengeView = true
-                    }
-                )
             }
         }
-        .navigationBarBackButtonHidden(true) // Empêche le bouton de retour par défaut
+        .navigationBarBackButtonHidden(true)
+        .alert(isPresented: $viewModel.showAlert) {
+            Alert(
+                title: Text(viewModel.currentCount >= viewModel.maxCount ? "Congratulations !" : "Time's up"),
+                message: Text(viewModel.alertMessage),
+                dismissButton: .default(Text("OK"))
+            )
+        }
     }
 
     private func constructURL(token: String, exercise: String, difficulty: String) -> URL {
