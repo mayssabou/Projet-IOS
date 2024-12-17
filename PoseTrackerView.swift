@@ -14,7 +14,7 @@ class ViewModel: ObservableObject {
        @Published var showAlert: Bool = false // Pour afficher l'alerte
        @Published var alertMessage: String = "" // Message de l'alerte
        let maxCount = 10 // Objectif de répétitions
-       
+ var userId: String?
     func updateData(with data: String) {
         DispatchQueue.main.async {
             self.info = data
@@ -46,11 +46,85 @@ class ViewModel: ObservableObject {
                        self.alertMessage = "Time's up! Try again to reach \(self.maxCount) repetitions."
                    }
                    self.showAlert = true
+                   self.submitParticipation()
                }
            }
        }
+ // Fonction pour soumettre la participation de l'utilisateur
+ func submitParticipation() {
+     guard let userId = self.userId else { return }
+    
+     // Exemple de requête pour envoyer les données au backend
+     let url = URL(string: "https://9c1e-197-3-6-252.ngrok-free.app/challenge-participations")!
+     var request = URLRequest(url: url)
+     request.httpMethod = "POST"
+     request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+    
+     let body: [String: Any] = [
+         "userId": userId,
+         "repetitions": currentCount,
+         "exercise": "squat", // Exemples, vous pouvez changer cela dynamiquement
+         "duration": 30 - self.timerValue // Temps restant
+     ]
+    
+     do {
+         let jsonData = try JSONSerialization.data(withJSONObject: body, options: [])
+         request.httpBody = jsonData
+     } catch {
+         print("Erreur de sérialisation des données : \(error)")
+         return
+     }
+    
+     let task = URLSession.shared.dataTask(with: request) { data, response, error in
+         if let error = error {
+             print("Erreur lors de l'envoi de la participation : \(error)")
+             return
+         }
+         // Gestion de la réponse, si nécessaire
+         print("Participation envoyée avec succès.")
+     }
+     task.resume()
+ }
 
+ // Fonction pour récupérer l'ID utilisateur par email
+ func fetchUserIdByEmail(email: String, completion: @escaping (String?) -> Void) {
+     guard let encodedEmail = email.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+         completion(nil)
+         return
+     }
+
+     guard let url = URL(string: "https://9c1e-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
+         completion(nil)
+         return
+     }
+
+     var request = URLRequest(url: url)
+     request.httpMethod = "GET"
+     request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+
+     let task = URLSession.shared.dataTask(with: request) { data, response, error in
+         guard let data = data, error == nil else {
+             completion(nil)
+             return
+         }
+
+         do {
+             if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+                let userId = json["_id"] as? String {
+                 completion(userId)
+             } else {
+                 completion(nil)
+             }
+         } catch {
+             completion(nil)
+         }
+     }
+     task.resume()
+ }
 }
+
+
+
 
 // WebView intégrée à SwiftUI
 struct WebView: UIViewRepresentable {
@@ -134,7 +208,7 @@ struct PoseTrackerView: View {
             ZStack {
                 Color.white
                     .edgesIgnoringSafeArea(.all)
-
+                
                 VStack {
                     if showWebView {
                         WebView(
@@ -149,7 +223,7 @@ struct PoseTrackerView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .shadow(color: Color.blue.opacity(0.5), radius: 10)
                         .padding()
-
+                        
                         VStack(spacing: 20) {
                             Text("Repetitions : \(viewModel.currentCount) / \(viewModel.maxCount)")
                                 .font(.headline)
@@ -158,7 +232,7 @@ struct PoseTrackerView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(12)
                                 .shadow(color: Color.green.opacity(0.5), radius: 5)
-
+                            
                             Text("Time Remaining : \(viewModel.timerValue) seconds")
                                 .font(.headline)
                                 .padding()
@@ -179,7 +253,7 @@ struct PoseTrackerView: View {
                                         .shadow(color: Color.red.opacity(0.5), radius: 5)
                                 }
                             }
-
+                            
                         }
                     } else {
                         VStack(spacing: 30) {
@@ -188,7 +262,7 @@ struct PoseTrackerView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(Color.blue)
                                 .multilineTextAlignment(.center)
-
+                            
                             Picker("Exercise", selection: $selectedExercise) {
                                 Text("Squat").tag("squat")
                                 Text("Push-up").tag("pushup")
@@ -197,7 +271,7 @@ struct PoseTrackerView: View {
                             .padding()
                             .background(Color.green.opacity(0.3))
                             .cornerRadius(12)
-
+                            
                             Picker("Difficulty", selection: $selectedDifficulty) {
                                 Text("Easy").tag("easy")
                                 Text("Medium").tag("medium")
@@ -207,7 +281,7 @@ struct PoseTrackerView: View {
                             .padding()
                             .background(Color.blue.opacity(0.3))
                             .cornerRadius(12)
-
+                            
                             Button(action: {
                                 showWebView = true
                             }) {
@@ -235,10 +309,15 @@ struct PoseTrackerView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
+        .onAppear {  viewModel.fetchUserIdByEmail(email: email) { userId in viewModel.userId = userId }
+            
+        }
     }
 
     private func constructURL(token: String, exercise: String, difficulty: String) -> URL {
+ 
         let baseUrl = "https://app.posetracker.com/pose_tracker/tracking"
+ 
         var components = URLComponents(string: baseUrl)!
         components.queryItems = [
             URLQueryItem(name: "token", value: token),
