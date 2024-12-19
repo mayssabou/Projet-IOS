@@ -55,7 +55,7 @@ class ViewModel: ObservableObject {
      guard let userId = self.userId else { return }
     
      // Exemple de requête pour envoyer les données au backend
-     let url = URL(string: "https://9c1e-197-3-6-252.ngrok-free.app/challenge-participations")!
+     let url = URL(string: "https://a92e-197-3-6-252.ngrok-free.app/challenge-participations")!
      var request = URLRequest(url: url)
      request.httpMethod = "POST"
      request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -93,7 +93,7 @@ class ViewModel: ObservableObject {
          return
      }
 
-     guard let url = URL(string: "https://9c1e-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
+     guard let url = URL(string: "https://a92e-197-3-6-252.ngrok-free.app/user/\(encodedEmail)") else {
          completion(nil)
          return
      }
@@ -240,7 +240,7 @@ struct PoseTrackerView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(12)
                                 .shadow(color: Color.green.opacity(0.5), radius: 5)
-                            if !viewModel.timerActive {
+                           /* if !viewModel.timerActive {
                                 Button(action: {
                                     viewModel.restartExercise()
                                 }) {
@@ -253,7 +253,7 @@ struct PoseTrackerView: View {
                                         .shadow(color: Color.red.opacity(0.5), radius: 5)
                                 }
                             }
-                            
+                            */
                         }
                     } else {
                         VStack(spacing: 30) {
